@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { useSearchParams } from "react-router-dom";
 import { searchMovie } from "../../articles-api";
 import toast, { Toaster } from "react-hot-toast";
 import Loader from "../../components/Loader/Loader";
@@ -11,14 +12,19 @@ export default function MoviesPage() {
   const [isLoading, setIsLoading] = useState(false);
   const [isError, setIsError] = useState(false);
   const [query, setQuery] = useState("");
-  const [showNoImagesToast, setShowNoImagesToast] = useState(false);
+  const [showNoMoviesToast, setShowNoImagesToast] = useState(false);
+
+  const [searchParams, setSearchParams] = useSearchParams();
 
   const handleSearch = (newQuery) => {
     setShowNoImagesToast(false);
+    setSearchParams({ query: newQuery });
     setQuery(newQuery);
   };
 
   useEffect(() => {
+    const movieParam = searchParams.get("query") ?? "";
+    setQuery(movieParam);
     if (query === "") {
       return;
     }
@@ -29,10 +35,8 @@ export default function MoviesPage() {
         setIsError(false);
         setIsLoading(true);
         const data = await searchMovie(query);
-        setMovies((prevMovies) => {
-          return [...prevMovies, ...data];
-        });
-        if (data.length === 0 && !showNoImagesToast) {
+        setMovies((prevMovies) => [...prevMovies, ...data]);
+        if (data.length === 0 && !showNoMoviesToast) {
           toast.error("No movie found, try changing your request!");
           setShowNoImagesToast(true);
         }
@@ -44,11 +48,12 @@ export default function MoviesPage() {
     }
 
     getMovie();
-  }, [query, showNoImagesToast]);
+  }, [query, showNoMoviesToast, searchParams]);
 
   return (
     <>
       <SearchBar onSearch={handleSearch} />
+      {isLoading && <Loader />}
       <Toaster />
       {isError && <ErrorMessage />}
       {movies.length > 0 && (
