@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { useSearchParams } from "react-router-dom";
 import { searchMovie } from "../../articles-api";
 import toast, { Toaster } from "react-hot-toast";
@@ -12,19 +12,26 @@ export default function MoviesPage() {
   const [isLoading, setIsLoading] = useState(false);
   const [isError, setIsError] = useState(false);
   const [query, setQuery] = useState("");
-  const [showNoMoviesToast, setShowNoImagesToast] = useState(false);
+  const [showNoMoviesToast, setShowNoMoviesToast] = useState(false);
 
   const [searchParams, setSearchParams] = useSearchParams();
+  const isInitialMount = useRef(true);
 
   const handleSearch = (newQuery) => {
-    setShowNoImagesToast(false);
+    setShowNoMoviesToast(false);
     setSearchParams({ query: newQuery });
     setQuery(newQuery);
   };
 
   useEffect(() => {
     const movieParam = searchParams.get("query") ?? "";
-    setQuery(movieParam);
+    if (!isInitialMount.current) {
+      setQuery(movieParam);
+    }
+    isInitialMount.current = false;
+  }, [searchParams]);
+
+  useEffect(() => {
     if (query === "") {
       return;
     }
@@ -38,7 +45,7 @@ export default function MoviesPage() {
         setMovies((prevMovies) => [...prevMovies, ...data]);
         if (data.length === 0 && !showNoMoviesToast) {
           toast.error("No movie found, try changing your request!");
-          setShowNoImagesToast(true);
+          setShowNoMoviesToast(true);
         }
       } catch (error) {
         setIsError(true);
@@ -48,7 +55,7 @@ export default function MoviesPage() {
     }
 
     getMovie();
-  }, [query, showNoMoviesToast, searchParams]);
+  }, [query, showNoMoviesToast]);
 
   return (
     <>
@@ -56,9 +63,7 @@ export default function MoviesPage() {
       {isLoading && <Loader />}
       <Toaster />
       {isError && <ErrorMessage />}
-      {movies.length > 0 && (
-        <MovieList movies={movies} onImageClick={handleSearch} />
-      )}
+      {movies.length > 0 && <MovieList movies={movies} />}
     </>
   );
 }
